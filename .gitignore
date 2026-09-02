@@ -1,0 +1,18 @@
+# Ambiente virtual (reconstruído com uv sync)
+.venv/
+
+# Artefactos Python
+__pycache__/
+*.pyc
+
+# Caches de ferramentas
+.mypy_cache/
+
+# Output gerado (o subject proíbe commitá-lo)
+data/output/
+
+
+
+# tmp
+en.subject.pdf
+test.json
