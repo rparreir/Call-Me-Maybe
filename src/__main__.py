@@ -25,14 +25,16 @@ def main():
     
     token_list_by_id = decode_vocab(model)
     
+    
     #for i in range(len(loaded_input)):
     print("Prompt:")
-    print(loaded_input[0].prompt)
+    print(loaded_input[11].prompt)
     print("Result:")
-    request = build_prompt(loaded_func_def, loaded_input[0].prompt)
+    request = build_prompt(loaded_func_def, loaded_input[11].prompt)
     encode_request = encode_prompt(model, request)
     
-    result = generator(model, encode_request, loaded_func_def, 20)
+    result = generator(model, encode_request, loaded_func_def,
+                       token_list_by_id, 20)
     #print(decode_ids(model, result))
 
 
