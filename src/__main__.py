@@ -1,5 +1,7 @@
 from llm_sdk import Small_LLM_Model
 import argparse
+import os
+import json
 from .loader import loader
 from .models import FunctionDef, TestCase
 from .tokenizer import decode_vocab, encode_prompt, decode_ids
@@ -25,19 +27,25 @@ def main():
     
     token_list_by_id = decode_vocab(model)
     
+    final_json = []
+    for i in range(len(loaded_input)):
+        request = build_prompt(loaded_func_def, loaded_input[i].prompt)
+        encode_request = encode_prompt(model, request)
+        
+        result = generator(model, encode_request, loaded_func_def,
+                        token_list_by_id, loaded_input[i].prompt)
+        print(result)
+        final_json.append(result)
     
-    #for i in range(len(loaded_input)):
-    print("Prompt:")
-    print(loaded_input[11].prompt)
-    print("Result:")
-    request = build_prompt(loaded_func_def, loaded_input[11].prompt)
-    encode_request = encode_prompt(model, request)
+    folder_src = os.path.dirname(os.path.abspath(__file__))
+    new_folder_path = os.path.join(folder_src, "..", "data", "output")
+    final_path = os.path.abspath(new_folder_path)
+    os.makedirs(final_path, exist_ok=True)
     
-    result = generator(model, encode_request, loaded_func_def,
-                       token_list_by_id, 20)
-    #print(decode_ids(model, result))
-
-
+    file_path = os.path.join(final_path, "function_calling_results.json")
+    
+    with open(file_path, "w", encoding="utf-8") as fuc_call:
+        json.dump(final_json, fuc_call, ensure_ascii=False, indent=4)
 
 if __name__ == "__main__":
     main()

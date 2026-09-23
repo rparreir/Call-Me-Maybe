@@ -1,18 +1,20 @@
 from .tokenizer import decode_vocab, encode_prompt, decode_ids, encode_function_names
 from .models import FunctionDef, TestCase
 from llm_sdk import Small_LLM_Model
+import json
 
 def generator(model: Small_LLM_Model, ids: list[int],
               functions: list[FunctionDef],
-              token_list_by_id: list, max_tokens: int = 20) -> list[int]:
+              token_list_by_id: list, prompt) -> list[int]:
     json_prompt = {}
-    
+    json_prompt['prompt'] = prompt
+
     candidates = encode_function_names(model, functions)
     name_json = encode_prompt(model, ' {"name": "')
     ids = ids + name_json
     chosen_name = generate_name(model, ids, candidates)
     json_prompt["name"] = decode_ids(model, chosen_name[0])
-    parameters_json = encode_prompt(model, '", "parameters": {')
+    parameters_json = encode_prompt(model, ', "parameters": {')
     ids = ids + parameters_json
     json_prompt["parameters"] = {}
     
@@ -29,8 +31,11 @@ def generator(model: Small_LLM_Model, ids: list[int],
                     chosen_number = generate_number(model, ids)
                     json_prompt["parameters"][key] = float(decode_ids(model, chosen_number))
                 if param.type == "string":
-                    chosen_string = generate_string(model, ids, token_list_by_id)
-                    json_prompt["parameters"][key] = decode_ids(model, chosen_string)
+                    text = generate_string(model, ids, token_list_by_id)
+                    try:
+                        json_prompt["parameters"][key] = json.loads('"' + text + '"').strip()
+                    except json.JSONDecodeError:
+                        json_prompt["parameters"][key] = text.strip()
                 if param.type == "boolean" or param.type == "bool":
                     chosen_bool = generate_bool(model, ids)# working here
                     json_prompt["parameters"][key] = decode_ids(model, chosen_bool[0]) == "true"
@@ -40,11 +45,7 @@ def generator(model: Small_LLM_Model, ids: list[int],
                     ids = ids + encode_prompt(model, ', ')
                 
     ids = ids + encode_prompt(model, '}}')
-    
-    print(json_prompt)
-    #print(decode_ids(model, ids))
-    #print(decode_ids(model, result))
-    print(decode_ids(model, ids))
+
     return json_prompt
 
 
@@ -55,32 +56,44 @@ def apply_mask(logits: list[int], allowed_ids: list[int]) -> int:
 def get_token_pos(ative: list[int], pos: int):
     allowed = []
     for candidate in ative:
-        allowed.append(candidate[pos])
+        if len(candidate) > pos:
+            allowed.append(candidate[pos])
     return allowed
 
 def get_selected_token(ative: list[int], pos: int, next_token: int):
     chosen = []
     for candidate in ative:
-        if candidate[pos] == next_token:
+        if len(candidate) > pos and candidate[pos] == next_token:
             chosen.append(candidate)
     return chosen
 
+def has_complete(ative: list[int], pos: int) -> bool:
+    for candidate in ative:
+        if len(candidate) == pos:
+            return True
+    return False
 
 def generate_name(model: Small_LLM_Model, ids: list[int], candidates: list[int]):
+    quote = encode_prompt(model, '"')[0]
     ative = candidates
     pos = 0
     
     while True:
-        logits = model.get_logits_from_input_ids(ids)
         allowed = get_token_pos(ative, pos)
-        next_token = apply_mask(logits, allowed)
+        if has_complete(ative, pos):
+            allowed = allowed + [quote]
+        if len(set(allowed)) == 1:
+            next_token = allowed[0]
+        else:
+            logits = model.get_logits_from_input_ids(ids)
+            next_token = apply_mask(logits, allowed)
         ids.append(next_token)
+        if next_token == quote:
+            break
         ative = get_selected_token(ative, pos, next_token)
         pos += 1
 
-        if len(ative) == 1 and len(ative[0]) == pos:
-            break
-    return ative
+    return [c for c in ative if len(c) == pos]
 
 
 def generate_number(model: Small_LLM_Model, ids: list[int]):
@@ -102,26 +115,35 @@ def generate_number(model: Small_LLM_Model, ids: list[int]):
     return return_values
 
 def generate_string(model: Small_LLM_Model, ids: list[int], token_list_by_id: list):
-    allowed = []
     cont = []
     final = []
-    return_values = []
+    text = ""
 
     for i, value in enumerate(token_list_by_id):
-        if not '"' in value:
-            cont.append(i)
-        elif value.startswith('"'):
+        if '"' in value:
             final.append(i)
+        else:
+            cont.append(i)
 
     allowed = cont + final
+
     for i in range(20):
         logits = model.get_logits_from_input_ids(ids)
         next_token = apply_mask(logits, allowed)
-        if decode_ids(model, next_token).startswith('"'):
+        value = decode_ids(model, next_token)
+        if '"' in value:
+            head = value.split('"')[0]
+            if head.endswith("\\"):
+                ids.append(next_token)
+                text = text + value
+                continue
+            if head:
+                ids.extend(encode_prompt(model, head))
+                text = text + head
             break
         ids.append(next_token)
-        return_values.append(next_token)
-    return return_values
+        text = text + value
+    return text
 
 def generate_bool(model: Small_LLM_Model, ids: list[int]):
     ative = [encode_prompt(model, "true"), encode_prompt(model, "false")]

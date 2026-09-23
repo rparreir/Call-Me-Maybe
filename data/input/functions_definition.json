@@ -67,14 +67,5 @@
     "returns": {
       "type": "string"
     }
-  },
-  {
-    "name": "fn_format_text",
-    "description": "Format a text, optionally converting it to uppercase.",
-    "parameters": {
-      "text": {"type": "string"},
-      "uppercase": {"type": "boolean"}
-    },
-    "returns": {"type": "string"}
   }
 ]
