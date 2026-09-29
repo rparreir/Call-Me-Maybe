@@ -3,6 +3,16 @@ from .models import FunctionDef, TestCase
 from llm_sdk import Small_LLM_Model
 import json
 
+NUMBER_TYPES = ["number", "integer", "int", "float", "double", "long"]
+BOOLEAN_TYPES = ["boolean", "bool"]
+
+def normalize_type(raw_type: str) -> str:
+    if raw_type.lower() in NUMBER_TYPES:
+        return "number"
+    if raw_type.lower() in BOOLEAN_TYPES:
+        return "boolean"
+    return "string"
+
 def generator(model: Small_LLM_Model, ids: list[int],
               functions: list[FunctionDef],
               token_list_by_id: list, prompt) -> list[int]:
@@ -21,25 +31,26 @@ def generator(model: Small_LLM_Model, ids: list[int],
     for fn in functions:
         if fn.name == decode_ids(model, chosen_name[0]):
             for i, (key, param) in enumerate(fn.parameters.items()):
-                if param.type == "string":
+                param_type = normalize_type(param.type)
+                if param_type == "string":
                     ids = ids + encode_prompt(model, f'"{key}": "')
                 else:
                     ids = ids + encode_prompt(model, f'"{key}": ')
 
                 json_prompt["parameters"][key] = None
-                if param.type == "number":
+                if param_type == "number":
                     chosen_number = generate_number(model, ids)
                     json_prompt["parameters"][key] = float(decode_ids(model, chosen_number))
-                if param.type == "string":
+                if param_type == "string":
                     text = generate_string(model, ids, token_list_by_id)
                     try:
                         json_prompt["parameters"][key] = json.loads('"' + text + '"').strip()
                     except json.JSONDecodeError:
                         json_prompt["parameters"][key] = text.strip()
-                if param.type == "boolean" or param.type == "bool":
+                if param_type == "boolean":
                     chosen_bool = generate_bool(model, ids)# working here
                     json_prompt["parameters"][key] = decode_ids(model, chosen_bool[0]) == "true"
-                if param.type == "string":
+                if param_type == "string":
                     ids = ids + encode_prompt(model, '"')
                 if i < len(fn.parameters) - 1:
                     ids = ids + encode_prompt(model, ', ')
@@ -99,15 +110,30 @@ def generate_name(model: Small_LLM_Model, ids: list[int], candidates: list[int])
 def generate_number(model: Small_LLM_Model, ids: list[int]):
     allowed_values = []
     return_values = []
+    allowed_values.append(encode_prompt(model, " -")[0])
+    allowed_values.append(encode_prompt(model, "-")[0])
     for i in range(0, 10):
         allowed_values.append(encode_prompt(model, str(i))[0])
 
     for i in range(20):
         logits = model.get_logits_from_input_ids(ids)
-        if return_values and i == 1:
-            allowed_values.append(encode_prompt(model, ",")[0])
-            allowed_values.append(encode_prompt(model, "}")[0])
+        if return_values:
+            if (decode_ids(model, return_values[0]) == " -" or decode_ids(model, return_values[0]) == "-") and i == 2:
+                allowed_values.append(encode_prompt(model, ",")[0])
+                allowed_values.append(encode_prompt(model, "}")[0])
+                allowed_values.append(encode_prompt(model, ".")[0])
+            elif (decode_ids(model, return_values[0]) != " -" and decode_ids(model, return_values[0]) != "-") and i == 1:
+                allowed_values.append(encode_prompt(model, ",")[0])
+                allowed_values.append(encode_prompt(model, "}")[0])
+                allowed_values.append(encode_prompt(model, ".")[0])
+        
+            
         next_token = apply_mask(logits, allowed_values)
+        if decode_ids(model, next_token) == ".":
+            allowed_values = allowed_values[:-3]
+            
+        if i == 0:
+            allowed_values = allowed_values[2:]
         if decode_ids(model, next_token) == "," or decode_ids(model, next_token) == "}":
             break
         ids.append(next_token)
