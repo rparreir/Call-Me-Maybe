@@ -86,7 +86,7 @@ At each step the model returns logits for the whole vocabulary. Rather than sett
 to −∞, the program takes the argmax over the allowed ids only — same result, cheaper:
 
 ```python
-def apply_mask(logits, allowed_ids):
+def pick_allowed_token(logits, allowed_ids):
     return max(allowed_ids, key=lambda i: logits[i])
 ```
 

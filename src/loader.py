@@ -1,9 +1,30 @@
 import json
 import sys
 from pydantic import ValidationError, BaseModel
+from typing import TypeVar
+
+ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
-def loader(path: str, func: type[BaseModel]):
+def loader(path: str, func: type[ModelT]) -> list[ModelT]:
+    """Load a JSON array from a file and validate every item.
+
+    Used for both input files: the function definitions and the test
+    prompts, with the matching model passed in ``func``.
+
+    On a missing or unreadable file, broken JSON, a root that is not an
+    array of objects, or an item that does not match the model, it prints
+    the reason and exits with code 1.
+
+    Args:
+        path: Path to a JSON file holding an array of objects.
+        func: The pydantic model class each item must match. Building it
+            validates the item, so a bad field raises ``ValidationError``.
+
+    Returns:
+        One model instance per item, in file order. Callers reach the
+        fields as attributes, not as dictionary keys.
+    """
     try:
         with open(path, "r", encoding="utf-8") as j_file:
             raw = json.load(j_file)

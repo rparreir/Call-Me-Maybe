@@ -1,10 +1,10 @@
 [project]
 name = "call-me-maybe"
 version = "0.1.0"
-description = "Add your description here"
+description = "Program to turn natural language prompts into JSON function calls."
 readme = "README.md"
 authors = [
-    { name = "Ruben", email = "rubenparreira11@gmail.com" } #mudar este email para o da escola
+    { name = "Ruben", email = "rparreir@student.42lisboa.com" }
 ]
 requires-python = ">=3.10"
 dependencies = [

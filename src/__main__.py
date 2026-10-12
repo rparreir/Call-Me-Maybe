@@ -1,25 +1,40 @@
-from llm_sdk import Small_LLM_Model
-import argparse
-import os
-import json
 import sys
-from .loader import loader
-from .models import FunctionDef, TestCase
-from .tokenizer import decode_vocab, encode_text
-from . generator import generator
-from .build_prompt import build_prompt
+
+try:
+    from llm_sdk import Small_LLM_Model
+    import argparse
+    import os
+    import json
+    from .loader import loader
+    from .models import FunctionDef, TestCase
+    from .tokenizer import decode_vocab, encode_text
+    from . generator import generator
+    from .build_prompt import build_prompt
+except (KeyboardInterrupt, NameError):
+    print("\nExited")
+    sys.exit(1)
 
 
-def main():
+def main() -> None:
+    """Run the whole pipeline once.
+
+    Loads the model and the two input files, builds a prompt for each
+    test case, generates its function call, and writes every result to
+    the output file as a single JSON array.
+    """
     model = Small_LLM_Model()
-    parse = argparse.ArgumentParser(description="...")
+    parse = argparse.ArgumentParser(description="Turn natural language prompts"
+                                    " into JSON function calls.")
 
     parse.add_argument("--functions_definition",
-                       default="data/input/functions_definition.json")
+                       default="data/input/functions_definition.json",
+                       help="JSON file with the available functions")
     parse.add_argument("--input",
-                       default="data/input/function_calling_tests.json")
+                       default="data/input/function_calling_tests.json",
+                       help="JSON file with the prompts to process")
     parse.add_argument("--output",
-                       default="data/output/function_calling_results.json")
+                       default="data/output/function_calling_results.json",
+                       help="where to write the results")
 
     args = parse.parse_args()
 
@@ -51,4 +66,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nExited")
+        sys.exit(1)
