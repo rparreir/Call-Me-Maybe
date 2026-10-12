@@ -19,9 +19,6 @@ dev = [
     "mypy",
 ]
 
-[flake8]
-exclude = .venv,llm_sdk
-
 [tool.uv.sources]
 llm_sdk = { path = "./llm_sdk", editable = true }
 
