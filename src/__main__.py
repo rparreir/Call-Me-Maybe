@@ -10,7 +10,7 @@ try:
     from .tokenizer import decode_vocab, encode_text
     from . generator import generator
     from .build_prompt import build_prompt
-except (KeyboardInterrupt, NameError):
+except KeyboardInterrupt:
     print("\nExited")
     sys.exit(1)
 
