@@ -55,6 +55,8 @@ def decode_ids(model: Small_LLM_Model, ids: list[int] | int) -> str:
         of digit tokens comes back as ``"265"``, not as three pieces,
         which is what lets the caller pass it straight to ``float()``.
     """
+    if isinstance(ids, int):
+        ids = [ids]
     text: str = model.decode(ids)
     return text
 

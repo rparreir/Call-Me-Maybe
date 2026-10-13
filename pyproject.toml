@@ -24,6 +24,7 @@ llm_sdk = { path = "./llm_sdk", editable = true }
 
 [tool.mypy]
 namespace_packages = false
+exclude = ['^llm_sdk/']
 
 [[tool.mypy.overrides]]
 module = ["llm_sdk", "llm_sdk.*"]
