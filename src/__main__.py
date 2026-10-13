@@ -22,7 +22,11 @@ def main() -> None:
     test case, generates its function call, and writes every result to
     the output file as a single JSON array.
     """
-    model = Small_LLM_Model()
+    try:
+        model = Small_LLM_Model()
+    except Exception:
+        print("Model unable to load")
+        sys.exit(1)
     parse = argparse.ArgumentParser(description="Turn natural language prompts"
                                     " into JSON function calls.")
 

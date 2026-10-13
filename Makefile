@@ -11,14 +11,14 @@ debug:
 	uv run python -m pdb -m src
 
 lint:
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	uv run flake8 .
+	uv run mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	flake8 . 
-	mypy . --strict
+	uv run flake8 .
+	uv run mypy . --strict
 
 clean:
-	rm -rf __pycache__ .mypy_cache .venv
+	rm -rf src/__pycache__ .mypy_cache llm_sdk/llm_sdk/__pycache__
 
-.PHONY: install run debug lint lint-strict clean
+.PHONY: install run download debug lint lint-strict clean

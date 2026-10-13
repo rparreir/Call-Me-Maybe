@@ -1,6 +1,7 @@
 import json
 from llm_sdk import Small_LLM_Model
 from .models import FunctionDef
+import sys
 
 
 def decode_vocab(model: Small_LLM_Model) -> list:
@@ -17,7 +18,11 @@ def decode_vocab(model: Small_LLM_Model) -> list:
     Returns:
         A list where position ``i`` holds the text of token id ``i``.
     """
-    path = model.get_path_to_vocab_file()
+    try:
+        path = model.get_path_to_vocab_file()
+    except Exception:
+        print("Unable to get vocab")
+        sys.exit(1)
     token_list_by_id = []
     with open(path, "r", encoding="utf-8") as p:
         vocab = json.load(p)
