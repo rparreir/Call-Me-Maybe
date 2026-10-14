@@ -1,10 +1,10 @@
 import sys
+import argparse
+import os
+import json
 
 try:
     from llm_sdk import Small_LLM_Model
-    import argparse
-    import os
-    import json
     from .loader import loader
     from .models import FunctionDef, TestCase
     from .tokenizer import decode_vocab, encode_text
